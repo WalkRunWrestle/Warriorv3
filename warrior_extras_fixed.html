@@ -1,0 +1,2566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Warrior 21K</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0b0d;
+      --panel:#14151a;
+      --panel2:#101116;
+      --border:#2a2e36;
+      --text:#f6f7fb;
+      --muted:rgba(246,247,251,.72);
+
+      --aqua:#47e7ff;
+      --lime:#8cff00;
+      --yellow:#ffe600;
+      --pink:#ff27d6;
+      --blue:#3558ff;
+      --purple:#7a3cff;
+
+      --primary:var(--lime);
+      --primary-dark:#5ec400;
+      --danger:var(--pink);
+    }
+
+    *{box-sizing:border-box}
+
+    @keyframes glowPulse {
+      0% { box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 14px 32px rgba(53,88,255,.22), 0 0 24px rgba(255,39,214,.18); }
+      50% { box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 16px 40px rgba(53,88,255,.28), 0 0 38px rgba(255,39,214,.28); }
+      100% { box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 14px 32px rgba(53,88,255,.22), 0 0 24px rgba(255,39,214,.18); }
+    }
+
+    @keyframes shimmerMove {
+      0% { transform: translateX(-140%); opacity:.1; }
+      40% { opacity:.5; }
+      100% { transform: translateX(180%); opacity:.05; }
+    }
+
+    @keyframes popupIn {
+      0% { transform: translateY(18px) scale(.96); opacity:0; }
+      100% { transform: translateY(0) scale(1); opacity:1; }
+    }
+
+    @keyframes softFloat {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+      100% { transform: translateY(0); }
+    }
+
+    @keyframes medalGlow {
+      0% { box-shadow: 0 12px 28px rgba(0,0,0,.3), 0 0 24px rgba(255,39,214,.14); }
+      50% { box-shadow: 0 16px 34px rgba(0,0,0,.34), 0 0 36px rgba(255,230,0,.18), 0 0 28px rgba(71,231,255,.14); }
+      100% { box-shadow: 0 12px 28px rgba(0,0,0,.3), 0 0 24px rgba(255,39,214,.14); }
+    }
+
+    @keyframes bgShift {
+      0% { filter: saturate(1) brightness(1); }
+      50% { filter: saturate(1.08) brightness(1.02); }
+      100% { filter: saturate(1) brightness(1); }
+    }
+
+    body{
+      margin:0;
+      font-family:Inter, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1100px 620px at 10% 8%, rgba(71,231,255,.28), transparent 56%),
+        radial-gradient(980px 560px at 92% 8%, rgba(255,39,214,.24), transparent 58%),
+        radial-gradient(980px 720px at 50% 100%, rgba(140,255,0,.18), transparent 60%),
+        radial-gradient(800px 460px at 85% 65%, rgba(53,88,255,.18), transparent 58%),
+        linear-gradient(180deg, #09090c, #060608);
+      animation:bgShift 7s ease-in-out infinite;
+    }
+
+    .screen{
+      min-height:100vh;
+      display:none;
+      padding:12px 12px 22px;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .screen.active{display:flex}
+
+    .card{
+      width:min(96vw, 760px);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:22px;
+      padding:10px;
+      box-shadow:
+        0 18px 40px rgba(0,0,0,.38),
+        0 0 0 1px rgba(255,255,255,.02);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(560px 190px at 0% 0%, rgba(71,231,255,.12), transparent 58%),
+        radial-gradient(560px 190px at 100% 0%, rgba(255,39,214,.10), transparent 58%);
+      pointer-events:none;
+    }
+
+    .login-card{
+      width:min(94vw, 380px);
+      text-align:center;
+      padding:14px;
+    }
+
+    .logo{
+      display:block;
+      max-width:88px;
+      width:100%;
+      height:auto;
+      margin:0 auto 6px;
+      filter:drop-shadow(0 0 24px rgba(71,231,255,.18));
+      position:relative;
+      z-index:1;
+    }
+
+    .medal{
+      display:block;
+      max-width:128px;
+      width:100%;
+      height:auto;
+      margin:10px auto 8px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.02),
+        0 12px 30px rgba(0,0,0,.28),
+        0 0 30px rgba(255,230,0,.16);
+      position:relative;
+      z-index:1;
+    }
+
+    .medal-small{
+      display:block;
+      max-width:102px;
+      width:100%;
+      height:auto;
+      margin:8px auto 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      animation:medalGlow 2.8s ease-in-out infinite;
+    }
+
+    h1,h2,h3,p{margin:0}
+
+    .title{
+      font-size:20px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.55px;
+      text-align:center;
+      position:relative;
+      z-index:1;
+      text-shadow:
+        0 0 18px rgba(255,255,255,.04),
+        0 0 28px rgba(71,231,255,.08),
+        0 0 18px rgba(255,39,214,.06);
+    }
+
+    .sub{
+      margin-top:5px;
+      color:var(--muted);
+      font-size:11px;
+      text-align:center;
+      line-height:1.35;
+      position:relative;
+      z-index:1;
+    }
+
+    .hero-tag{
+      margin-top:8px;
+      display:none;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      background:linear-gradient(135deg, rgba(71,231,255,.16), rgba(255,39,214,.14));
+      border:1px solid rgba(255,255,255,.08);
+      color:#fff;
+      box-shadow:0 0 22px rgba(71,231,255,.16);
+      position:relative;
+      z-index:1;
+    }
+
+    .hero-glow-line{
+      display:none;
+      height:4px;
+      width:132px;
+      margin:10px auto 0;
+      border-radius:999px;
+      background:linear-gradient(90deg, var(--aqua), var(--lime), var(--pink), var(--yellow));
+      box-shadow:
+        0 0 22px rgba(71,231,255,.34),
+        0 0 20px rgba(255,39,214,.24),
+        0 0 18px rgba(255,230,0,.18);
+      position:relative;
+      z-index:1;
+    }
+
+    .input{
+      width:100%;
+      padding:12px 13px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(11,12,18,.92);
+      color:var(--text);
+      font-size:14px;
+      margin-top:10px;
+      outline:none;
+      position:relative;
+      z-index:1;
+    }
+
+    .input:focus{
+      border-color:rgba(71,231,255,.45);
+      box-shadow:0 0 0 3px rgba(71,231,255,.08);
+    }
+
+    .btn{
+      border:none;
+      border-radius:14px;
+      padding:11px 13px;
+      font-size:14px;
+      font-weight:900;
+      cursor:pointer;
+      transition:transform .15s ease, filter .15s ease, opacity .15s ease;
+      text-decoration:none;
+      text-align:center;
+      display:inline-block;
+      position:relative;
+      z-index:1;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.08);
+    }
+
+    .btn:disabled,
+    .btn.disabled{
+      opacity:.5;
+      cursor:not-allowed;
+      transform:none;
+      filter:none;
+      pointer-events:none;
+    }
+
+    .btn-primary{
+      background:linear-gradient(135deg, #64d400, var(--lime));
+      color:#111;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.05),
+        0 14px 32px rgba(140,255,0,.24),
+        0 0 22px rgba(140,255,0,.16);
+    }
+
+    .btn-secondary{
+      background:linear-gradient(135deg, rgba(71,231,255,.18), rgba(53,88,255,.14));
+      color:var(--text);
+      border:1px solid rgba(71,231,255,.28);
+      box-shadow:0 12px 26px rgba(53,88,255,.10);
+    }
+
+    .btn-danger{
+      background:linear-gradient(135deg, #d600af, var(--pink));
+      color:#fff;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.05),
+        0 14px 32px rgba(255,39,214,.22),
+        0 0 22px rgba(255,39,214,.16);
+    }
+
+    .btn-gold{
+      background:linear-gradient(135deg, #ffd400, var(--yellow), #fff36a);
+      color:#141418;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.05),
+        0 14px 30px rgba(255,230,0,.20);
+    }
+
+    .btn-playlist-hero{
+      width:100%;
+      margin-top:6px;
+      padding:11px 12px;
+      font-size:14px;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      border-radius:16px;
+      background:linear-gradient(135deg, var(--blue), var(--pink));
+      color:#fff;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.06),
+        0 16px 36px rgba(53,88,255,.28),
+        0 0 34px rgba(255,39,214,.26);
+      animation:glowPulse 2.2s ease-in-out infinite, softFloat 3s ease-in-out infinite;
+    }
+
+    .playlist-kicker{
+      margin-top:8px;
+      font-size:9px;
+      color:rgba(246,247,251,.7);
+      font-weight:900;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      position:relative;
+      z-index:1;
+    }
+
+    .btn-certificate-coming{
+      background:linear-gradient(135deg, var(--purple), var(--blue));
+      color:#fff;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.05),
+        0 12px 26px rgba(53,88,255,.18),
+        0 0 20px rgba(122,60,255,.18);
+    }
+
+    .full{
+      width:100%;
+      margin-top:8px;
+    }
+
+    .app-wrap{
+      width:min(96vw, 940px);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .top-card{
+      text-align:center;
+      padding:8px;
+      background:
+        radial-gradient(450px 210px at 15% 0%, rgba(71,231,255,.16), transparent 58%),
+        radial-gradient(450px 210px at 85% 0%, rgba(255,39,214,.14), transparent 58%),
+        linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+      box-shadow:
+        0 18px 40px rgba(0,0,0,.36),
+        0 0 0 1px rgba(255,255,255,.03),
+        0 0 36px rgba(53,88,255,.08);
+    }
+
+    .status-bar{
+      display:none;
+      margin-top:7px;
+      padding:7px 10px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      font-size:11px;
+      font-weight:900;
+      line-height:1.35;
+      box-shadow:0 0 18px rgba(0,0,0,.12);
+      position:relative;
+      z-index:1;
+    }
+
+    .status-ready{ color:var(--aqua); }
+    .status-live{ color:var(--yellow); }
+    .status-saved{ color:#f1f3f6; }
+    .status-complete{ color:var(--pink); }
+
+    .progress-big{
+      margin-top:6px;
+      font-size:13px;
+      font-weight:900;
+      line-height:1.25;
+      position:relative;
+      z-index:1;
+    }
+
+    .progress-bar{
+      width:100%;
+      height:7px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      margin-top:9px;
+      position:relative;
+      z-index:1;
+    }
+
+    .progress-fill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg, var(--aqua), var(--lime), var(--pink), var(--yellow));
+      box-shadow:
+        0 0 18px rgba(71,231,255,.32),
+        0 0 18px rgba(255,39,214,.22);
+      transition:width .25s ease;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .progress-fill::after{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      width:40%;
+      height:100%;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+      animation:shimmerMove 2.4s linear infinite;
+    }
+
+    .summary-strip{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:5px;
+      margin-top:7px;
+      position:relative;
+      z-index:1;
+    }
+
+    .summary-box{
+      border:1px solid rgba(255,255,255,.08);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025));
+      border-radius:14px;
+      padding:7px 8px;
+      text-align:left;
+      box-shadow:0 10px 24px rgba(0,0,0,.12);
+    }
+
+    .summary-label{
+      font-size:9px;
+      color:var(--muted);
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .summary-value{
+      margin-top:3px;
+      font-size:12px;
+      font-weight:900;
+      line-height:1.3;
+    }
+
+    .helper-links{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:10px;
+      position:relative;
+      z-index:1;
+    }
+
+    .helper-link-btn{
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:999px;
+      padding:7px 11px;
+      font-size:11px;
+      font-weight:800;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:8px;
+    }
+
+    @media (min-width:860px){
+      .grid{grid-template-columns:1.1fr .9fr}
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+      margin-top:7px;
+    }
+
+    .stat{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:7px 6px;
+      text-align:center;
+      box-shadow:0 8px 20px rgba(0,0,0,.12);
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      justify-content:center;
+    }
+
+    .stat:nth-child(1){
+      background:linear-gradient(180deg, rgba(71,231,255,.12), rgba(71,231,255,.03));
+      border-color:rgba(71,231,255,.22);
+    }
+
+    .stat:nth-child(2){
+      background:linear-gradient(180deg, rgba(140,255,0,.12), rgba(140,255,0,.03));
+      border-color:rgba(140,255,0,.22);
+    }
+
+    .stat:nth-child(3){
+      background:linear-gradient(180deg, rgba(255,39,214,.12), rgba(255,39,214,.03));
+      border-color:rgba(255,39,214,.20);
+    }
+
+    .stat-label{
+      font-size:9px;
+      color:rgba(246,247,251,.72);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .stat-value{
+      margin-top:0;
+      font-size:14px;
+      font-weight:900;
+      line-height:1.1;
+    }
+
+    #map{
+      width:100%;
+      height:168px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      margin-top:6px;
+      box-shadow:
+        0 16px 30px rgba(0,0,0,.18),
+        0 0 26px rgba(71,231,255,.12);
+      position:relative;
+      z-index:1;
+    }
+
+    .row{
+      display:flex;
+      gap:7px;
+      flex-wrap:wrap;
+    }
+
+    .row .btn{
+      flex:1 1 140px;
+      width:auto;
+      margin-top:0;
+    }
+
+    .notice{
+      margin-top:6px;
+      padding:8px 9px;
+      border-radius:13px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(18,19,24,.92);
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.42;
+    }
+
+    .gps-ready{
+      margin-top:6px;
+      padding:7px 10px;
+      border-radius:12px;
+      border:1px solid rgba(71,231,255,.24);
+      background:rgba(71,231,255,.09);
+      color:#dcffff;
+      font-size:11px;
+      line-height:1.35;
+      font-weight:800;
+      box-shadow:0 0 24px rgba(71,231,255,.10);
+    }
+
+    .section-title{
+      font-size:14px;
+      font-weight:900;
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+
+    .manual-box{
+      margin-top:6px;
+      padding:9px;
+      border-radius:15px;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(22,23,29,.96), rgba(16,17,22,.96));
+    }
+
+    .manual-row{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:6px;
+    }
+
+    .manual-row .input{
+      flex:1 1 150px;
+      margin-top:0;
+    }
+
+    .session-list{
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+      margin-top:8px;
+    }
+
+    .session-item{
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius:14px;
+      padding:8px;
+      box-shadow:0 10px 22px rgba(0,0,0,.12);
+    }
+
+    .session-top{
+      display:flex;
+      justify-content:space-between;
+      gap:6px;
+      align-items:center;
+      flex-wrap:wrap;
+      font-weight:800;
+      font-size:12px;
+    }
+
+    .session-meta{
+      margin-top:5px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.35;
+    }
+
+    .session-actions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+
+    .session-badge{
+      display:inline-block;
+      margin-top:5px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .badge-manual{
+      color:var(--yellow);
+      border-color:rgba(255,230,0,.35);
+      background:rgba(255,230,0,.08);
+    }
+
+    .badge-gps{
+      color:var(--aqua);
+      border-color:rgba(71,231,255,.28);
+      background:rgba(71,231,255,.08);
+    }
+
+    .badge-proof{
+      color:var(--pink);
+      border-color:rgba(255,39,214,.3);
+      background:rgba(255,39,214,.08);
+      margin-left:5px;
+    }
+
+    .small-title{
+      font-size:14px;
+      font-weight:900;
+      margin-bottom:6px;
+      position:relative;
+      z-index:1;
+    }
+
+    .collapsible-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .collapse-toggle{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .collapse-content{
+      display:none;
+    }
+
+    .collapse-content.open{
+      display:block;
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.92);
+      display:none;
+      justify-content:center;
+      align-items:flex-start;
+      padding:20px 12px 12px;
+      z-index:9999;
+      backdrop-filter:blur(2px);
+      overflow-y:auto;
+    }
+
+    .overlay.show{display:flex}
+
+    .overlay.show .modal-card{
+      animation:popupIn .32s ease-out;
+    }
+
+    .modal-card{
+      width:min(94vw, 540px);
+      background:
+        radial-gradient(520px 200px at 12% 0%, rgba(71,231,255,.10), transparent 58%),
+        radial-gradient(520px 200px at 88% 0%, rgba(255,39,214,.08), transparent 58%),
+        linear-gradient(180deg, rgba(20,21,26,.97), rgba(14,15,20,.97));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:22px;
+      padding:15px 13px;
+      text-align:center;
+      box-shadow:
+        0 22px 70px rgba(0,0,0,.55),
+        0 0 0 1px rgba(255,255,255,.02),
+        0 0 36px rgba(53,88,255,.10),
+        0 0 26px rgba(255,39,214,.08);
+      max-height:92vh;
+      overflow:auto;
+    }
+
+    .modal-title{
+      font-size:25px;
+      font-weight:900;
+      margin-bottom:6px;
+      text-shadow:
+        0 0 24px rgba(255,39,214,.10),
+        0 0 24px rgba(71,231,255,.10);
+    }
+
+    .modal-copy{
+      color:var(--muted);
+      line-height:1.35;
+      font-size:12px;
+      margin-bottom:10px;
+    }
+
+    .modal-status{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.35;
+    }
+
+    .pill{
+      padding:7px 9px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+      font-size:11px;
+      font-weight:900;
+      box-shadow:0 0 12px rgba(0,0,0,.08);
+    }
+
+    .footer-actions{
+      margin-top:8px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .footer-actions .btn{
+      flex:1 1 130px;
+      width:auto;
+      margin-top:0;
+      padding:10px 12px;
+    }
+
+    .certificate-row{
+      margin-top:10px;
+    }
+
+    .certificate-row .btn{
+      width:100%;
+      padding:13px 14px;
+      font-size:15px;
+    }
+
+    .help{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:10px;
+      text-align:center;
+      line-height:1.35;
+    }
+
+    .login-help{
+      margin-top:8px;
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.3;
+      position:relative;
+      z-index:1;
+    }
+
+    .login-help a{
+      color:var(--text);
+      text-decoration:none;
+      font-weight:700;
+    }
+
+    select.input{
+      appearance:none;
+    }
+
+
+    .extras-box{
+      margin-top:7px;
+      padding:9px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(22,23,29,.96), rgba(16,17,22,.96));
+      text-align:left;
+      box-shadow:0 12px 28px rgba(0,0,0,.12);
+      position:relative;
+      z-index:1;
+    }
+
+    .extras-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(90deg, rgba(53,88,255,.18), rgba(255,39,214,.16));
+      cursor:pointer;
+      user-select:none;
+      box-shadow:0 8px 22px rgba(53,88,255,.10);
+    }
+
+    .extras-meta{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(122,60,255,.18);
+      border:1px solid rgba(255,39,214,.24);
+      color:#ffd9fb;
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .extras-actions{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:6px;
+      margin-top:7px;
+    }
+
+    .playlist-mini{
+      margin-top:0;
+      width:100%;
+      padding:10px 12px;
+      font-size:13px;
+      border-radius:14px;
+    }
+
+    .collectables-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(90deg, rgba(122,60,255,.22), rgba(255,39,214,.18));
+      cursor:pointer;
+      user-select:none;
+      box-shadow:
+        0 10px 28px rgba(53,88,255,.12),
+        0 0 22px rgba(255,39,214,.10);
+    }
+
+    .collectables-header .section-title{
+      margin:0;
+    }
+
+    .collectables-meta{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(122,60,255,.20);
+      border:1px solid rgba(255,39,214,.26);
+      color:#ffd9fb;
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .collectables-box{
+      margin-top:6px;
+      padding:8px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(22,23,29,.96), rgba(16,17,22,.96));
+      text-align:left;
+      box-shadow:0 12px 28px rgba(0,0,0,.12);
+      position:relative;
+      z-index:1;
+    }
+
+    .collectables-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .collectable-card{
+      position:relative;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      overflow:hidden;
+      background:var(--panel2);
+      min-height:150px;
+    }
+
+    .collectable-card img{
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      aspect-ratio: 3 / 4;
+    }
+
+    .collectable-card.locked img{
+      filter:grayscale(1) brightness(.28) blur(1px);
+      transform:scale(1.03);
+    }
+
+    .collectable-overlay{
+      position:absolute;
+      inset:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      gap:4px;
+      background:rgba(0,0,0,.42);
+      text-align:center;
+      padding:8px;
+    }
+
+    .collectable-lock{
+      font-size:24px;
+      line-height:1;
+    }
+
+    .collectable-name{
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.3px;
+    }
+
+    .collectable-status{
+      font-size:10px;
+      color:var(--muted);
+      line-height:1.25;
+    }
+
+    .collectable-card.unlocked .collectable-overlay{
+      background:linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.32));
+      justify-content:flex-end;
+      align-items:flex-start;
+    }
+
+    .collectable-card.unlocked .collectable-status{
+      color:#fff3a8;
+      font-weight:800;
+    }
+
+    .collectable-card.unlocked{
+      cursor:pointer;
+    }
+
+    .unlock-image{
+      display:block;
+      max-width:180px;
+      width:100%;
+      margin:10px auto 8px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+      box-shadow:0 0 24px rgba(255,39,214,.12);
+    }
+
+    .card-popup-image{
+      display:block;
+      max-width:260px;
+      width:100%;
+      margin:10px auto 8px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+      box-shadow:0 0 24px rgba(53,88,255,.14);
+    }
+
+    .danger-warning{
+      color:#ffd4eb;
+      border-color:rgba(255,39,214,.35);
+      background:rgba(255,39,214,.10);
+    }
+
+    .confirm-input{
+      text-transform:uppercase;
+      letter-spacing:.8px;
+      font-weight:900;
+      text-align:center;
+    }
+
+    .confirm-input::placeholder{
+      text-transform:none;
+      letter-spacing:0;
+      font-weight:600;
+    }
+
+  </style>
+</head>
+<body>
+
+  <section id="loginScreen" class="screen active">
+    <div class="card login-card">
+      <img src="Logo.png" alt="Walk Run Wrestle" class="logo">
+      <h1 class="title">The Warrior 21K</h1>
+      <div class="hero-tag">Bright. Loud. Unmissable.</div>
+      <div class="hero-glow-line"></div>
+
+      <img src="Warrior medal.png" alt="The Warrior Medal" class="medal">
+      <p class="sub">Built to be simple. No accounts. No tracking. Just your run.</p>
+
+      <div class="notice" style="margin-top:8px;">
+        Track your run, build progress, and unlock your reward.
+      </div>
+
+      <div class="manual-box" style="margin-top:10px; text-align:left;">
+        <div class="collapsible-header" id="loginHowItWorksToggle">
+          <div class="section-title" style="margin:0;">How It Works</div>
+          <div class="collapse-toggle" id="loginHowItWorksToggleText">Show</div>
+        </div>
+
+        <div id="loginHowItWorksContent" class="collapse-content">
+          <div class="notice" style="margin-top:6px;">
+            <strong>GPS runs</strong><br>
+            Tap Start Run and End Run to track a session live in the app.<br><br>
+
+            <strong>Manual runs</strong><br>
+            Use Manual Entry for treadmill, indoor sessions, or GPS issues. Manual runs need extra supporting proof.<br><br>
+
+            <strong>Important</strong><br>
+            Tracking works best when the app stays open. Most devices will keep tracking in the background, but it can vary — so always double-check your distance when you return.
+          </div>
+        </div>
+      </div>
+
+      <button id="startAppBtn" class="btn btn-primary full" style="margin-top:12px;">Start</button>
+    </div>
+  </section>
+
+  <section id="appScreen" class="screen">
+    <div class="app-wrap">
+      <div class="card top-card">
+        <img src="Logo.png" alt="Walk Run Wrestle" class="logo">
+        <h2 class="title">The Warrior 21K</h2>
+        <p class="sub">Track your runs and save progress toward 21K.</p>
+
+        <div id="statusBar" class="status-bar status-ready">Ready to track</div>
+
+        <div class="progress-big">
+          Total Saved Progress: <span id="savedTotalKm">0.00</span> / 21.00 km
+        </div>
+
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+
+        <div class="summary-strip">
+          <div class="summary-box">
+            <div class="summary-label">Runs Saved</div>
+            <div class="summary-value" id="runsSavedCount">0 runs</div>
+          </div>
+          <div class="summary-box">
+            <div class="summary-label">Last Saved Run</div>
+            <div class="summary-value" id="lastSavedRun">No runs saved yet</div>
+          </div>
+        </div>
+
+        <div class="extras-box">
+          <div class="extras-header" id="extrasToggle">
+            <div class="section-title" style="margin:0;">Extras</div>
+            <div class="extras-meta" id="extrasToggleText">Show</div>
+          </div>
+
+          <div id="extrasContent" class="collapse-content">
+            <div class="extras-actions">
+              <a
+                href="https://open.spotify.com/playlist/3XpXjz1aM2hIuoMAGGEg82?si=VYpibs25TWSsOT3oijNvMw&pi=AiqKZKT1SOGRF"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-playlist-hero playlist-mini"
+              >
+                ▶ Play The Warrior Playlist
+              </a>
+            </div>
+
+            <div class="collectables-box">
+              <div class="collectables-header" id="collectablesToggle">
+                <div class="section-title">Collectables</div>
+                <div class="collectables-meta" id="collectablesMeta">0 / 4 · Show</div>
+              </div>
+
+              <div id="collectablesContent" class="collapse-content">
+                <div class="notice" style="margin-top:6px;">
+                  Unlock limited digital collectable cards at 25%, 50%, 75%, and completion.
+                </div>
+
+                <div id="collectablesGrid" class="collectables-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-actions" id="completionActions" style="display:none; margin-top:7px;">
+          <button id="viewCompletionBtn" class="btn btn-gold">View Completion</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="small-title">Live Run</div>
+
+          <div class="gps-ready" id="gpsReadyBox">
+            GPS ready • runs usually continue in the background.
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-label">KM</div>
+              <div class="stat-value"><span id="liveDistance">0.00</span></div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Time</div>
+              <div class="stat-value" id="liveTime">00:00:00</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Steps</div>
+              <div class="stat-value" id="liveSteps">0</div>
+            </div>
+          </div>
+
+          <div class="row run-control-row" style="margin-top:6px;">
+            <button id="startBtn" class="btn btn-primary" disabled>Start Run</button>
+            <button id="endBtn" class="btn btn-danger" disabled>End Run</button>
+          </div>
+
+          <div id="map"></div>
+
+          <div class="notice" id="trackingNotice">
+            Keep the app open when possible. If you leave or lock your phone, double-check your distance when you return.
+          </div>
+
+          <div class="manual-box">
+            <div class="collapsible-header" id="manualToggle">
+              <div class="section-title" style="margin:0;">Manual Entry</div>
+              <div class="collapse-toggle" id="manualToggleText">Show</div>
+            </div>
+
+            <div id="manualContent" class="collapse-content">
+              <div class="notice" style="margin-top:6px;">
+                For treadmill, indoor sessions, or GPS issues. Manual runs need extra proof.
+              </div>
+
+              <div class="manual-row">
+                <input id="manualDistance" class="input" type="number" step="0.01" min="0" placeholder="Distance in km">
+                <input id="manualDate" class="input" type="date">
+              </div>
+
+              <div class="manual-row">
+                <button id="manualAddBtn" class="btn btn-secondary">Save Manual Run</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="collapsible-header" id="savedRunsToggle">
+            <div class="small-title" style="margin:0;">Saved Runs</div>
+            <div class="collapse-toggle" id="savedRunsToggleText">Show</div>
+          </div>
+
+          <div id="savedRunsContent" class="collapse-content">
+            <div id="sessionList" class="session-list"></div>
+
+            <div class="footer-actions">
+              <button id="resetBtn" class="btn btn-secondary">Reset Progress</button>
+              <button id="logoutBtn" class="btn btn-secondary">Log Out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="locationOverlay" class="overlay">
+    <div class="modal-card">
+      <div class="modal-title">Enable Location</div>
+
+      <div class="modal-copy">
+        We need location access to track your run distance live on the map.
+      </div>
+
+      <div class="notice" style="margin-top:0; text-align:left;">
+        <strong>Your location stays private.</strong><br><br>
+        We do not see or store where you walk or run.<br>
+        Your location stays on your device only.<br><br>
+        This tracker is for you only.<br>
+        The only data saved is:
+        <ul style="margin-top:6px; padding-left:18px;">
+          <li>Distance</li>
+          <li>Time</li>
+          <li>Estimated steps</li>
+          <li>A simple line image of your run for proof</li>
+        </ul>
+      </div>
+
+      <div class="notice" style="margin-top:8px; text-align:left;">
+        This works best when the app stays open, but most phones will continue tracking in the background.
+        If you switch apps or lock your phone, just double-check your distance when you return.
+      </div>
+
+      <div class="footer-actions">
+        <button id="enableLocationBtn" class="btn btn-primary">Enable Location</button>
+      </div>
+
+      <div id="locationStatus" class="modal-status">
+        Location must be enabled before you can start your run.
+      </div>
+    </div>
+  </div>
+
+  <div id="finishOverlay" class="overlay">
+    <div class="modal-card">
+      <div class="modal-title">Well Done!</div>
+      <img src="Warrior medal.png" alt="The Warrior Medal" class="medal-small">
+      <div class="modal-copy">
+        You’ve completed <strong>The Warrior 21K</strong>.
+      </div>
+
+      <div class="footer-actions" style="justify-content:center;">
+        <div class="pill">🏁 Total saved: <span id="finishTotal">0.00</span> km</div>
+        <div class="pill">👟 Estimated steps: <span id="finishSteps">0</span></div>
+      </div>
+
+      <div id="finishMessage" class="notice" style="text-align:left;">
+        Attach your proof before sending.
+      </div>
+
+      <div class="manual-box" style="margin-top:10px; text-align:left;">
+        <div class="section-title">Download Run Proofs</div>
+
+        <div class="manual-row">
+          <select id="proofRunSelect" class="input" style="margin-top:0;">
+            <option value="">Select a saved run</option>
+          </select>
+        </div>
+
+        <div class="footer-actions" style="margin-top:8px;">
+          <button id="downloadSelectedProofBtn" class="btn btn-secondary">Download Selected Proof</button>
+          <button id="downloadAllProofsBtn" class="btn btn-secondary">Download All Proofs</button>
+        </div>
+      </div>
+
+      <div class="certificate-row">
+        <button id="certificateBtn" class="btn btn-certificate-coming disabled" disabled>
+          Certificate Coming Soon
+        </button>
+      </div>
+
+      <div class="manual-box" style="margin-top:10px; text-align:left;">
+        <div class="collapsible-header" id="sendProofHelpToggle">
+          <div class="section-title" style="margin:0;">Send Proof Help</div>
+          <div class="collapse-toggle" id="sendProofHelpToggleText">Show</div>
+        </div>
+
+        <div id="sendProofHelpContent" class="collapse-content">
+          <div class="notice" style="margin-top:6px;">
+            <strong>Having trouble with the Send Proof button?</strong><br><br>
+            If your email app does not open automatically, send your proof manually to
+            <strong>Log@walkrunwrestle.com</strong>.<br><br>
+            Please include your <strong>full name</strong>, <strong>first line of address</strong>, and <strong>all proof images</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button id="proofBtn" class="btn btn-gold">Send Proof</button>
+        <button id="closeFinishBtn" class="btn btn-secondary">Close</button>
+      </div>
+
+      <div class="help">
+        Download your proof images first, then attach them to your email.
+      </div>
+    </div>
+  </div>
+
+  <div id="howItWorksOverlay" class="overlay">
+    <div class="modal-card">
+      <div class="modal-title">How Tracking Works</div>
+      <div class="notice" style="margin-top:0; text-align:left;">
+        <strong>GPS runs</strong><br>
+        Use Start Run and End Run to track a session in the app. GPS runs create a downloadable proof image.<br><br>
+
+        <strong>Manual runs</strong><br>
+        Use Manual Entry for treadmill, indoor sessions, or GPS issues. Manual runs need extra supporting proof.<br><br>
+
+        <strong>Important</strong><br>
+        Tracking works best when the app is open.
+        Most devices will continue tracking in the background, but it can vary — so it’s always worth checking your distance when you return.
+      </div>
+
+      <div class="footer-actions">
+        <button id="closeHowItWorksBtn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+<div id="collectableUnlockOverlay" class="overlay">
+    <div class="modal-card">
+      <div class="modal-title">New Unlock</div>
+      <img id="collectableUnlockImage" src="" alt="Unlocked collectable card" class="unlock-image">
+      <div class="modal-copy">
+        You unlocked a warrior collectable card.
+      </div>
+      <div id="collectableUnlockName" class="notice" style="text-align:center;"></div>
+      <div class="footer-actions">
+        <button id="viewCollectableBtn" class="btn btn-primary">View Collectables</button>
+        <button id="closeCollectableUnlockBtn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="collectableViewOverlay" class="overlay">
+    <div class="modal-card">
+      <div class="modal-title">Collectable Card</div>
+      <img id="cardPopupImage" src="" alt="Collectable card" class="card-popup-image">
+      <div id="cardPopupName" class="notice" style="text-align:center;"></div>
+      <div class="footer-actions">
+        <a id="downloadCardBtn" class="btn btn-primary" download>Download Card</a>
+        <button id="closeCardPopupBtn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resetConfirmOverlay" class="overlay">
+    <div class="modal-card">
+      <div class="modal-title">Delete All Data?</div>
+      <div class="notice danger-warning" style="text-align:left; margin-top:0;">
+        This will delete all saved runs, progress, collectables, and completion data from this device.
+      </div>
+      <div class="modal-copy" style="margin-top:10px;">
+        If you are sure, type <strong>WRW</strong> below to enable deletion.
+      </div>
+      <input id="resetConfirmInput" class="input confirm-input" type="text" placeholder="Type WRW">
+      <div class="footer-actions">
+        <button id="confirmResetBtn" class="btn btn-danger" disabled>Yes, Delete</button>
+        <button id="cancelResetBtn" class="btn btn-secondary">No</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+        const TARGET_KM = 21;
+    const STORAGE_KEY = "wrw_warrior_v5_sessions";
+    const COMPLETE_KEY = "wrw_warrior_v5_complete";
+    const STEPS_PER_KM = 1312;
+    const MIN_ACCURACY_METERS = 40;
+    const MIN_MOVEMENT_METERS = 8;
+    const MAX_JUMP_METERS = 250;
+    const WRW_EMAIL = "Log@walkrunwrestle.com";
+    const COLLECTABLES_KEY = "wrw_warrior_v5_collectables";
+    const COLLECTABLE_DEFS = [
+      { id: "card1", name: "Card 1", km: 5.25, file: "Warriorcard1.png" },
+      { id: "card2", name: "Card 2", km: 10.5, file: "Warriorcard2.png" },
+      { id: "card3", name: "Card 3", km: 15.75, file: "Warriorcard3.png" },
+      { id: "card4", name: "Card 4", km: 21.0, file: "Warriorcard4.png" }
+    ];
+
+    let map;
+    let userMarker;
+    let routeLine;
+    let watchId = null;
+    let isTracking = false;
+    let startTime = null;
+    let timerInterval = null;
+    let currentDistanceMeters = 0;
+    let lastPosition = null;
+    let routePoints = [];
+    let wakeLock = null;
+
+    const loginScreen = document.getElementById("loginScreen");
+    const appScreen = document.getElementById("appScreen");
+    const startAppBtn = document.getElementById("startAppBtn");
+
+    const startBtn = document.getElementById("startBtn");
+    const endBtn = document.getElementById("endBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const resetConfirmOverlay = document.getElementById("resetConfirmOverlay");
+    const resetConfirmInput = document.getElementById("resetConfirmInput");
+    const confirmResetBtn = document.getElementById("confirmResetBtn");
+    const cancelResetBtn = document.getElementById("cancelResetBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const manualDistanceInput = document.getElementById("manualDistance");
+    const manualDateInput = document.getElementById("manualDate");
+    const manualAddBtn = document.getElementById("manualAddBtn");
+
+    const liveDistanceEl = document.getElementById("liveDistance");
+    const liveTimeEl = document.getElementById("liveTime");
+    const liveStepsEl = document.getElementById("liveSteps");
+    const savedTotalKmEl = document.getElementById("savedTotalKm");
+    const progressFillEl = document.getElementById("progressFill");
+    const sessionListEl = document.getElementById("sessionList");
+    const trackingNotice = document.getElementById("trackingNotice");
+    const statusBar = document.getElementById("statusBar");
+    const runsSavedCount = document.getElementById("runsSavedCount");
+    const lastSavedRun = document.getElementById("lastSavedRun");
+    const gpsReadyBox = document.getElementById("gpsReadyBox");
+
+    const locationOverlay = document.getElementById("locationOverlay");
+    const enableLocationBtn = document.getElementById("enableLocationBtn");
+    const locationStatus = document.getElementById("locationStatus");
+
+    const finishOverlay = document.getElementById("finishOverlay");
+    const finishTotalEl = document.getElementById("finishTotal");
+    const finishStepsEl = document.getElementById("finishSteps");
+    const finishMessage = document.getElementById("finishMessage");
+    const proofBtn = document.getElementById("proofBtn");
+    const closeFinishBtn = document.getElementById("closeFinishBtn");
+    const proofRunSelect = document.getElementById("proofRunSelect");
+    const downloadSelectedProofBtn = document.getElementById("downloadSelectedProofBtn");
+    const downloadAllProofsBtn = document.getElementById("downloadAllProofsBtn");
+    const completionActions = document.getElementById("completionActions");
+    const viewCompletionBtn = document.getElementById("viewCompletionBtn");
+
+    const manualToggle = document.getElementById("manualToggle");
+    const manualContent = document.getElementById("manualContent");
+    const manualToggleText = document.getElementById("manualToggleText");
+
+    const savedRunsToggle = document.getElementById("savedRunsToggle");
+    const savedRunsContent = document.getElementById("savedRunsContent");
+    const savedRunsToggleText = document.getElementById("savedRunsToggleText");
+
+    const howItWorksOverlay = document.getElementById("howItWorksOverlay");
+    const closeHowItWorksBtn = document.getElementById("closeHowItWorksBtn");
+    const loginHowItWorksToggle = document.getElementById("loginHowItWorksToggle");
+    const loginHowItWorksContent = document.getElementById("loginHowItWorksContent");
+    const loginHowItWorksToggleText = document.getElementById("loginHowItWorksToggleText");
+
+    const sendProofHelpToggle = document.getElementById("sendProofHelpToggle");
+    const sendProofHelpToggleText = document.getElementById("sendProofHelpToggleText");
+    const sendProofHelpContent = document.getElementById("sendProofHelpContent");
+
+    const extrasToggle = document.getElementById("extrasToggle");
+    const extrasContent = document.getElementById("extrasContent");
+    const extrasToggleText = document.getElementById("extrasToggleText");
+
+    const collectablesToggle = document.getElementById("collectablesToggle");
+    const collectablesContent = document.getElementById("collectablesContent");
+    const collectablesMeta = document.getElementById("collectablesMeta");
+    const collectablesGrid = document.getElementById("collectablesGrid");
+
+    const collectableUnlockOverlay = document.getElementById("collectableUnlockOverlay");
+    const collectableUnlockImage = document.getElementById("collectableUnlockImage");
+    const collectableUnlockName = document.getElementById("collectableUnlockName");
+    const closeCollectableUnlockBtn = document.getElementById("closeCollectableUnlockBtn");
+    const viewCollectableBtn = document.getElementById("viewCollectableBtn");
+    const collectableViewOverlay = document.getElementById("collectableViewOverlay");
+    const cardPopupImage = document.getElementById("cardPopupImage");
+    const cardPopupName = document.getElementById("cardPopupName");
+    const downloadCardBtn = document.getElementById("downloadCardBtn");
+    const closeCardPopupBtn = document.getElementById("closeCardPopupBtn");
+
+    function openResetConfirm(){
+      resetConfirmInput.value = "";
+      confirmResetBtn.disabled = true;
+      resetConfirmOverlay.classList.add("show");
+      setTimeout(() => resetConfirmInput.focus(), 50);
+    }
+
+    function closeResetConfirm(){
+      resetConfirmOverlay.classList.remove("show");
+    }
+
+    function performResetProgress(){
+      if (isTracking){
+        alert("End your current run before resetting progress.");
+        return;
+      }
+
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(COMPLETE_KEY);
+      localStorage.removeItem(COLLECTABLES_KEY);
+
+      renderSessions();
+      renderCollectables();
+      updateOverallProgress();
+      updateCollectablesHeader();
+      hideFinishPopup();
+      closeResetConfirm();
+      resetLiveStats();
+
+      manualDistanceInput.value = "";
+      manualDateInput.value = new Date().toISOString().split("T")[0];
+      trackingNotice.textContent = "Tracking usually continues in the background on most devices. If you leave the app or lock your phone, just double-check your distance when you return.";
+      gpsReadyBox.textContent = "GPS ready. Most devices will keep tracking in the background.";
+      savedTotalKmEl.textContent = "0.00";
+      progressFillEl.style.width = "0%";
+      completionActions.style.display = "none";
+      setStatus("Ready to track", "status-ready");
+
+      alert("All data has been deleted from this device.");
+    }
+
+    function openCollectableCard(file, name){
+      if (!collectableViewOverlay || !cardPopupImage || !downloadCardBtn) return;
+      cardPopupImage.src = file;
+      cardPopupImage.alt = name || "Collectable card";
+      if (cardPopupName) cardPopupName.textContent = name || "Collectable Card";
+      downloadCardBtn.href = file;
+      downloadCardBtn.setAttribute("download", file.split("/").pop());
+      collectableViewOverlay.classList.add("show");
+    }
+    window.openCollectableCard = openCollectableCard;
+
+    function closeCollectableCard(){
+      if (collectableViewOverlay) collectableViewOverlay.classList.remove("show");
+    }
+
+    function getCollectableState(){
+      const saved = JSON.parse(localStorage.getItem(COLLECTABLES_KEY) || "{}");
+      const state = {};
+      COLLECTABLE_DEFS.forEach(card => {
+        state[card.id] = !!saved[card.id];
+      });
+      return state;
+    }
+
+    function saveCollectableState(state){
+      localStorage.setItem(COLLECTABLES_KEY, JSON.stringify(state));
+    }
+
+
+    function updateExtrasHeader(){
+      const isOpen = extrasContent.classList.contains("open");
+      if (extrasToggleText){
+        extrasToggleText.textContent = isOpen ? "Hide" : "Show";
+      }
+    }
+
+    function updateCollectablesHeader(){
+      const state = getCollectableState();
+      const unlockedCount = Object.values(state).filter(Boolean).length;
+      const totalCount = COLLECTABLE_DEFS.length;
+      const isOpen = extrasContent.classList.contains("open");
+      if (extrasToggleText){
+        extrasToggleText.textContent = isOpen ? `Hide` : `Show`;
+      }
+    }
+
+    function renderCollectables(){
+      const state = getCollectableState();
+      collectablesGrid.innerHTML = COLLECTABLE_DEFS.map(card => {
+        const unlocked = !!state[card.id];
+        return `
+          <div class="collectable-card ${unlocked ? "unlocked" : "locked"}" ${unlocked ? `onclick="openCollectableCard('${card.file}','${card.name.replace(/'/g, "\'")}')"` : ""}>
+            <img src="${card.file}" alt="${card.name}">
+            <div class="collectable-overlay">
+              <div class="collectable-lock">${unlocked ? "✓" : "🔒"}</div>
+              <div class="collectable-name">${card.name}</div>
+              <div class="collectable-status">${unlocked ? "Unlocked" : `Unlocks at ${card.km.toFixed(2)} km`}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+      updateCollectablesHeader();
+    }
+
+    function showCollectableUnlock(card){
+      collectableUnlockImage.src = card.file;
+      collectableUnlockImage.alt = card.name;
+      collectableUnlockName.textContent = card.name;
+      collectableUnlockOverlay.classList.add("show");
+    }
+
+    function hideCollectableUnlock(){
+      collectableUnlockOverlay.classList.remove("show");
+    }
+
+    function checkCollectableUnlocks(totalKm){
+      const state = getCollectableState();
+      let newlyUnlocked = null;
+
+      for (const card of COLLECTABLE_DEFS){
+        if (totalKm >= card.km && !state[card.id]){
+          state[card.id] = true;
+          if (!newlyUnlocked) newlyUnlocked = card;
+        }
+      }
+
+      saveCollectableState(state);
+      renderCollectables();
+
+      if (newlyUnlocked){
+        showCollectableUnlock(newlyUnlocked);
+      }
+    }
+
+    function formatTime(ms){
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+      const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+      const secs = String(totalSeconds % 60).padStart(2, "0");
+      return `${hours}:${mins}:${secs}`;
+    }
+
+    function estimateStepsFromKm(km){
+      return Math.round(km * STEPS_PER_KM);
+    }
+
+    function getSessions(){
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    }
+
+    function saveSessions(sessions){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+    }
+
+    function getTotalKm(){
+      return getSessions().reduce((sum, session) => sum + (session.distanceKm || 0), 0);
+    }
+
+    function getTotalSteps(){
+      return getSessions().reduce((sum, session) => sum + (session.steps || 0), 0);
+    }
+
+    function hasManualRuns(){
+      return getSessions().some(session => session.method === "Manual");
+    }
+
+    function setStatus(text, className){
+      statusBar.textContent = text;
+      statusBar.className = `status-bar ${className}`;
+    }
+
+    function updateFinishMessage(){
+      if (hasManualRuns()){
+        finishMessage.innerHTML = `
+          <strong>This completion includes one or more manual runs.</strong><br><br>
+          Manual runs need additional supporting proof.<br>
+          GPS runs can use their downloaded proof images.
+        `;
+      } else {
+        finishMessage.innerHTML = `
+          <strong>Your GPS runs have downloadable proof images.</strong><br><br>
+          Please download and attach them before sending your email.
+        `;
+      }
+    }
+
+    function populateProofRunSelect(){
+      const sessions = getSessions();
+      proofRunSelect.innerHTML = `<option value="">Select a saved run</option>`;
+
+      sessions.forEach((session, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `Run ${index + 1} - ${session.distanceKm.toFixed(2)} km - ${session.method}`;
+        proofRunSelect.appendChild(option);
+      });
+    }
+
+    function updateTopSummary(){
+      const sessions = getSessions();
+      runsSavedCount.textContent = `${sessions.length} ${sessions.length === 1 ? "run" : "runs"}`;
+
+      if (!sessions.length){
+        lastSavedRun.textContent = "No runs saved yet";
+        return;
+      }
+
+      const last = sessions[sessions.length - 1];
+      const method = last.method === "GPS" ? "GPS" : "Manual";
+      const dateText = new Date(last.date).toLocaleDateString();
+      lastSavedRun.textContent = `${last.distanceKm.toFixed(2)} km · ${method} · ${dateText}`;
+    }
+
+    function updateOverallProgress(){
+      const totalKm = getTotalKm();
+      savedTotalKmEl.textContent = totalKm.toFixed(2);
+
+      const pct = Math.min((totalKm / TARGET_KM) * 100, 100);
+      progressFillEl.style.width = pct + "%";
+
+      finishTotalEl.textContent = totalKm.toFixed(2);
+      finishStepsEl.textContent = getTotalSteps().toLocaleString();
+      updateFinishMessage();
+      updateTopSummary();
+      checkCollectableUnlocks(totalKm);
+
+      if (totalKm >= TARGET_KM){
+        completionActions.style.display = "flex";
+        if (!isTracking) setStatus("21K complete", "status-complete");
+
+        const alreadyComplete = localStorage.getItem(COMPLETE_KEY) === "true";
+        if (!alreadyComplete){
+          localStorage.setItem(COMPLETE_KEY, "true");
+          showFinishPopup();
+        }
+      } else {
+        completionActions.style.display = "none";
+        if (!isTracking) setStatus("Ready to track", "status-ready");
+      }
+    }
+
+    function renderSessions(){
+      const sessions = getSessions();
+
+      if (!sessions.length){
+        sessionListEl.innerHTML = `
+          <div class="session-item">
+            <div class="session-meta">No runs saved yet.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const reversed = sessions.slice().reverse();
+
+      sessionListEl.innerHTML = reversed.map((session, reversedIndex) => {
+        const realIndex = sessions.length - 1 - reversedIndex;
+        const badgeClass = session.method === "Manual" ? "badge-manual" : "badge-gps";
+        const badgeText = session.method === "Manual" ? "Manual entry - extra proof needed" : "GPS tracked run";
+        const proofBadge = session.proofDownloaded ? `<span class="session-badge badge-proof">Proof ready</span>` : "";
+
+        return `
+          <div class="session-item">
+            <div class="session-top">
+              <span>Run ${sessions.length - reversedIndex}</span>
+              <span>${session.distanceKm.toFixed(2)} km</span>
+            </div>
+
+            <div class="session-badge ${badgeClass}">${badgeText}</div>
+            ${proofBadge}
+
+            <div class="session-meta">
+              ${session.method === "GPS" ? `Time: ${session.timeText}<br>` : ``}
+              Estimated steps: ${session.steps.toLocaleString()}<br>
+              Method: ${session.method}<br>
+              Date: ${new Date(session.date).toLocaleDateString()}
+            </div>
+
+            <div class="session-actions">
+              <button class="btn btn-secondary" onclick="downloadProofForRun(${realIndex})">Download Proof</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function showFinishPopup(){
+      populateProofRunSelect();
+      finishOverlay.classList.add("show");
+    }
+
+    function hideFinishPopup(){
+      finishOverlay.classList.remove("show");
+    }
+
+    function resetLiveStats(){
+      liveDistanceEl.textContent = "0.00";
+      liveTimeEl.textContent = "00:00:00";
+      liveStepsEl.textContent = "0";
+    }
+
+    function initMap(){
+      if (map) return;
+
+      map = L.map("map").setView([51.505, -0.09], 13);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+
+      map.dragging.disable();
+      map.touchZoom.disable();
+      map.scrollWheelZoom.disable();
+      map.doubleClickZoom.disable();
+      map.boxZoom.disable();
+      map.keyboard.disable();
+      if (map.tap) map.tap.disable();
+
+      routeLine = L.polyline([], {
+        color: "#47e7ff",
+        weight: 5,
+        opacity: 0.95
+      }).addTo(map);
+    }
+
+    async function requestWakeLock(){
+      try{
+        if ("wakeLock" in navigator && document.visibilityState === "visible"){
+          wakeLock = await navigator.wakeLock.request("screen");
+        }
+      } catch (err){
+        console.error("Wake lock failed:", err);
+      }
+    }
+
+    async function releaseWakeLock(){
+      try{
+        if (wakeLock){
+          await wakeLock.release();
+          wakeLock = null;
+        }
+      } catch (err){
+        console.error("Wake lock release failed:", err);
+      }
+    }
+
+    function haversineMeters(lat1, lon1, lat2, lon2){
+      const R = 6371000;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function startTimer(){
+      timerInterval = setInterval(() => {
+        if (!startTime) return;
+        const elapsed = Date.now() - startTime;
+        liveTimeEl.textContent = formatTime(elapsed);
+      }, 1000);
+    }
+
+    function stopTimer(){
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function toggleSection(contentEl, labelEl){
+      const open = contentEl.classList.contains("open");
+      contentEl.classList.toggle("open", !open);
+      if (labelEl) labelEl.textContent = open ? "Show" : "Hide";
+      if (contentEl === collectablesContent) updateCollectablesHeader();
+    }
+
+    function enableLocationFromPopup(){
+      if (!navigator.geolocation){
+        locationStatus.textContent = "This browser does not support location.";
+        return;
+      }
+
+      locationStatus.textContent = "Checking permission...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          initMap();
+
+          const point = [position.coords.latitude, position.coords.longitude];
+
+          if (!userMarker){
+            userMarker = L.marker(point).addTo(map);
+          } else {
+            userMarker.setLatLng(point);
+          }
+
+          map.setView(point, 17);
+
+          locationStatus.textContent = "Location enabled ✔";
+          startBtn.disabled = false;
+          setStatus("Ready to track", "status-ready");
+
+          setTimeout(() => {
+            locationOverlay.classList.remove("show");
+          }, 500);
+        },
+        (error) => {
+          console.error(error);
+          locationStatus.textContent = "Location blocked. Please allow it in your browser or phone settings.";
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+        }
+      );
+    }
+
+    async function startRun(){
+      if (!navigator.geolocation){
+        alert("Your browser does not support location tracking.");
+        return;
+      }
+
+      initMap();
+
+      isTracking = true;
+      startTime = Date.now();
+      currentDistanceMeters = 0;
+      lastPosition = null;
+      routePoints = [];
+      routeLine.setLatLngs([]);
+      resetLiveStats();
+
+      startBtn.disabled = true;
+      endBtn.disabled = false;
+      manualAddBtn.disabled = true;
+
+      setStatus("Tracking in progress", "status-live");
+      gpsReadyBox.innerHTML = `GPS live. Most devices will keep tracking in the background.`;
+      trackingNotice.innerHTML = `Tracking usually continues in the background on most devices.<br>If you leave the app or lock your phone, just double-check your distance when you return.<br><br><strong>Screen wake lock is active where supported.</strong>`;
+
+      startTimer();
+      await requestWakeLock();
+
+      watchId = navigator.geolocation.watchPosition(
+        handlePosition,
+        handleLocationError,
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+        }
+      );
+    }
+
+    function handlePosition(position){
+      if (!isTracking) return;
+
+      const { latitude, longitude, accuracy } = position.coords;
+
+      if (accuracy > MIN_ACCURACY_METERS) return;
+
+      const point = [latitude, longitude];
+
+      if (!lastPosition){
+        lastPosition = point;
+        routePoints.push(point);
+
+        if (!userMarker){
+          userMarker = L.marker(point).addTo(map);
+        } else {
+          userMarker.setLatLng(point);
+        }
+
+        routeLine.setLatLngs(routePoints);
+        map.setView(point, 17);
+        return;
+      }
+
+      const segmentMeters = haversineMeters(
+        lastPosition[0],
+        lastPosition[1],
+        latitude,
+        longitude
+      );
+
+      if (segmentMeters < MIN_MOVEMENT_METERS) return;
+      if (segmentMeters > MAX_JUMP_METERS) return;
+
+      currentDistanceMeters += segmentMeters;
+      lastPosition = point;
+      routePoints.push(point);
+
+      userMarker.setLatLng(point);
+      routeLine.setLatLngs(routePoints);
+      map.panTo(point);
+
+      const km = currentDistanceMeters / 1000;
+      liveDistanceEl.textContent = km.toFixed(2);
+      liveStepsEl.textContent = estimateStepsFromKm(km).toLocaleString();
+    }
+
+    function handleLocationError(error){
+      console.error(error);
+      stopRunTrackingOnly();
+      startBtn.disabled = false;
+      endBtn.disabled = true;
+      manualAddBtn.disabled = false;
+      trackingNotice.textContent = "Tracking stopped. You can try again or use Manual Entry.";
+      gpsReadyBox.textContent = "GPS ready. Most devices will keep tracking in the background.";
+      setStatus("Ready to track", "status-ready");
+      alert("Location tracking failed. You can try again or use Manual Entry.");
+    }
+
+    function stopRunTrackingOnly(){
+      isTracking = false;
+
+      if (watchId !== null){
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+
+      stopTimer();
+      releaseWakeLock();
+    }
+
+    function endRun(){
+      if (!isTracking) return;
+
+      stopRunTrackingOnly();
+
+      const elapsedMs = Date.now() - startTime;
+      const distanceKm = currentDistanceMeters / 1000;
+      const steps = estimateStepsFromKm(distanceKm);
+
+      startBtn.disabled = false;
+      endBtn.disabled = true;
+      manualAddBtn.disabled = false;
+      trackingNotice.textContent = "Tracking usually continues in the background on most devices. If you leave the app or lock your phone, just double-check your distance when you return.";
+      gpsReadyBox.textContent = "GPS ready. Most devices will keep tracking in the background.";
+
+      if (distanceKm <= 0){
+        setStatus("Ready to track", "status-ready");
+        alert("No distance was recorded for this run.");
+        return;
+      }
+
+      const sessions = getSessions();
+      sessions.push({
+        date: new Date().toISOString(),
+        distanceKm,
+        timeMs: elapsedMs,
+        timeText: formatTime(elapsedMs),
+        steps,
+        method: "GPS",
+        routePoints: routePoints.slice(),
+        proofDownloaded: false
+      });
+      saveSessions(sessions);
+
+      renderSessions();
+      updateOverallProgress();
+      resetLiveStats();
+
+      setStatus("Run saved", "status-saved");
+
+      currentDistanceMeters = 0;
+      startTime = null;
+      lastPosition = null;
+      routePoints = [];
+      if (routeLine) routeLine.setLatLngs([]);
+    }
+
+    function addManualRun(){
+      if (isTracking){
+        alert("End the current GPS run before adding a manual run.");
+        return;
+      }
+
+      const distanceKm = Number(manualDistanceInput.value);
+      const selectedDate = manualDateInput.value;
+
+      if (!distanceKm || distanceKm <= 0){
+        alert("Enter a valid manual distance.");
+        return;
+      }
+
+      if (!selectedDate){
+        alert("Select a date for the manual run.");
+        return;
+      }
+
+      const steps = estimateStepsFromKm(distanceKm);
+
+      const sessions = getSessions();
+      sessions.push({
+        date: new Date(selectedDate + "T12:00:00").toISOString(),
+        distanceKm,
+        timeMs: 0,
+        timeText: "Manual entry",
+        steps,
+        method: "Manual",
+        routePoints: [],
+        proofDownloaded: false
+      });
+      saveSessions(sessions);
+
+      manualDistanceInput.value = "";
+      manualDateInput.value = "";
+
+      renderSessions();
+      updateOverallProgress();
+      setStatus("Manual entry added", "status-saved");
+
+      alert("Manual run saved. Additional proof will be needed for this entry.");
+    }
+
+    function collectablesBoxScroll(){
+      collectablesToggle.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function downloadProofForRun(index){
+      const sessions = getSessions();
+      const session = sessions[index];
+      if (!session) return;
+
+      const canvas = document.createElement("canvas");
+      const width = 1200;
+      const height = 1600;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+
+      const bg = ctx.createLinearGradient(0, 0, 0, height);
+      bg.addColorStop(0, "#0b0b0d");
+      bg.addColorStop(1, "#060608");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, width, height);
+
+      const glow = ctx.createRadialGradient(width * 0.2, height * 0.15, 0, width * 0.2, height * 0.15, 520);
+      glow.addColorStop(0, "rgba(71,231,255,0.18)");
+      glow.addColorStop(.45, "rgba(255,39,214,0.12)");
+      glow.addColorStop(.75, "rgba(140,255,0,0.10)");
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.fillStyle = "rgba(255,255,255,0.03)";
+      roundRect(ctx, 60, 60, width - 120, height - 120, 40, true, false);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, 60, 60, width - 120, height - 120, 40, false, true);
+
+      ctx.fillStyle = "#f1f3f6";
+      ctx.textAlign = "center";
+      ctx.font = "900 62px Inter, Arial";
+      ctx.fillText("THE WARRIOR", width / 2, 150);
+
+      ctx.fillStyle = "rgba(241,243,246,0.68)";
+      ctx.font = "400 28px Inter, Arial";
+      ctx.fillText("Walk Run Wrestle Proof Image", width / 2, 205);
+
+      const routeX = 120;
+      const routeY = 270;
+      const routeW = width - 240;
+      const routeH = 560;
+
+      ctx.fillStyle = "rgba(255,255,255,0.03)";
+      roundRect(ctx, routeX, routeY, routeW, routeH, 28, true, false);
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, routeX, routeY, routeW, routeH, 28, false, true);
+
+      ctx.fillStyle = "rgba(241,243,246,0.68)";
+      ctx.textAlign = "left";
+      ctx.font = "700 24px Inter, Arial";
+      ctx.fillText(session.method === "GPS" ? "PRIVATE RUN SHAPE" : "MANUAL ENTRY", routeX + 30, routeY + 45);
+
+      if (session.method === "GPS" && Array.isArray(session.routePoints) && session.routePoints.length > 1){
+        drawNormalizedRoute(ctx, session.routePoints, routeX + 40, routeY + 80, routeW - 80, routeH - 120);
+      } else {
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(241,243,246,0.85)";
+        ctx.font = "900 40px Inter, Arial";
+        ctx.fillText("MANUAL RUN", width / 2, routeY + 230);
+
+        ctx.fillStyle = "rgba(255,230,0,0.96)";
+        ctx.font = "700 28px Inter, Arial";
+        ctx.fillText("Additional proof required", width / 2, routeY + 290);
+
+        ctx.fillStyle = "rgba(241,243,246,0.68)";
+        ctx.font = "400 24px Inter, Arial";
+        ctx.fillText("No GPS route is stored for manual entries.", width / 2, routeY + 355);
+      }
+
+      const statY = 900;
+      drawStatBox(ctx, 120, statY, 280, 170, "DISTANCE", `${session.distanceKm.toFixed(2)} km`);
+      drawStatBox(ctx, 460, statY, 280, 170, session.method === "GPS" ? "TIME" : "DATE", session.method === "GPS" ? session.timeText : new Date(session.date).toLocaleDateString());
+      drawStatBox(ctx, 800, statY, 280, 170, "EST. STEPS", session.steps.toLocaleString());
+
+      drawStatBox(ctx, 120, 1110, 450, 150, "METHOD", session.method === "GPS" ? "GPS TRACKED" : "MANUAL ENTRY");
+      drawStatBox(ctx, 610, 1110, 470, 150, "DATE", new Date(session.date).toLocaleDateString());
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(241,243,246,0.68)";
+      ctx.font = "400 24px Inter, Arial";
+      const footerText = session.method === "GPS"
+        ? "This image shows a private route shape only. No place names or map markers are included."
+        : "Manual entry. Please provide extra supporting proof with your email.";
+      wrapText(ctx, footerText, width / 2, 1360, 900, 34);
+
+      ctx.fillStyle = "#47e7ff";
+      ctx.font = "900 24px Inter, Arial";
+      ctx.fillText("WALK RUN WRESTLE", width / 2, 1490);
+
+      const safeDate = new Date(session.date).toISOString().slice(0, 10);
+      const uniqueId = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+      const filename = session.method === "GPS"
+        ? `warrior-proof-gps-${safeDate}-${uniqueId}.png`
+        : `warrior-proof-manual-${safeDate}-${uniqueId}.png`;
+
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      sessions[index].proofDownloaded = true;
+      saveSessions(sessions);
+      renderSessions();
+    }
+
+    function drawNormalizedRoute(ctx, points, x, y, w, h){
+      const xs = points.map(p => p[1]);
+      const ys = points.map(p => p[0]);
+
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+
+      const rangeX = Math.max(maxX - minX, 0.00001);
+      const rangeY = Math.max(maxY - minY, 0.00001);
+
+      const pad = 30;
+      const drawW = w - pad * 2;
+      const drawH = h - pad * 2;
+
+      const scale = Math.min(drawW / rangeX, drawH / rangeY);
+
+      const normalized = points.map(p => {
+        const nx = x + pad + ((p[1] - minX) * scale);
+        const ny = y + pad + ((p[0] - minY) * scale);
+        return [nx, ny];
+      });
+
+      const routeMinX = Math.min(...normalized.map(p => p[0]));
+      const routeMaxX = Math.max(...normalized.map(p => p[0]));
+      const routeMinY = Math.min(...normalized.map(p => p[1]));
+      const routeMaxY = Math.max(...normalized.map(p => p[1]));
+
+      const offsetX = x + (w - (routeMaxX - routeMinX)) / 2 - routeMinX;
+      const offsetY = y + (h - (routeMaxY - routeMinY)) / 2 - routeMinY;
+
+      const centered = normalized.map(p => [p[0] + offsetX, p[1] + offsetY]);
+
+      ctx.beginPath();
+      centered.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p[0], p[1]);
+        else ctx.lineTo(p[0], p[1]);
+      });
+      ctx.lineWidth = 20;
+      ctx.strokeStyle = "rgba(71,231,255,0.18)";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      ctx.beginPath();
+      centered.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p[0], p[1]);
+        else ctx.lineTo(p[0], p[1]);
+      });
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = "#47e7ff";
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(centered[0][0], centered[0][1], 10, 0, Math.PI * 2);
+      ctx.fillStyle = "#8cff00";
+      ctx.fill();
+
+      const end = centered[centered.length - 1];
+      ctx.beginPath();
+      ctx.arc(end[0], end[1], 10, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff27d6";
+      ctx.fill();
+    }
+
+    function drawStatBox(ctx, x, y, w, h, label, value){
+      ctx.fillStyle = "rgba(255,255,255,0.03)";
+      roundRect(ctx, x, y, w, h, 24, true, false);
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, y, w, h, 24, false, true);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(241,243,246,0.68)";
+      ctx.font = "700 22px Inter, Arial";
+      ctx.fillText(label, x + w / 2, y + 48);
+
+      ctx.fillStyle = "#f1f3f6";
+      ctx.font = "900 34px Inter, Arial";
+      wrapText(ctx, String(value), x + w / 2, y + 105, w - 40, 38);
+    }
+
+    function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+      let r = radius;
+      if (width < 2 * r) r = width / 2;
+      if (height < 2 * r) r = height / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function wrapText(ctx, text, centerX, startY, maxWidth, lineHeight){
+      const words = String(text).split(" ");
+      let line = "";
+      let y = startY;
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+          ctx.fillText(line.trim(), centerX, y);
+          line = words[n] + " ";
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), centerX, y);
+    }
+
+    function sendProofEmail(){
+      const totalKm = getTotalKm().toFixed(2);
+      const totalSteps = getTotalSteps().toLocaleString();
+      const includesManual = hasManualRuns();
+
+      const subject = encodeURIComponent("The Warrior - Completed");
+
+      const bodyText = includesManual
+        ? `Hi WRW,
+
+I have completed The Warrior 21K.
+
+Total saved distance: ${totalKm} km
+Estimated steps: ${totalSteps}
+
+This completion includes one or more manual runs.
+I have attached supporting proof for all manual runs.
+I have also attached downloaded GPS proof images where relevant.
+
+Full name:
+First line of address:
+
+Thanks`
+        : `Hi WRW,
+
+I have completed The Warrior 21K.
+
+Total saved distance: ${totalKm} km
+Estimated steps: ${totalSteps}
+
+My GPS-tracked runs have been recorded in the app.
+I have attached my downloaded proof images.
+
+Full name:
+First line of address:
+
+Thanks`;
+
+      const body = encodeURIComponent(bodyText);
+      window.location.href = `mailto:${WRW_EMAIL}?subject=${subject}&body=${body}`;
+    }
+
+    document.addEventListener("visibilitychange", async () => {
+      if (document.visibilityState === "visible" && isTracking){
+        trackingNotice.innerHTML = `Tracking usually continues in the background on most devices.<br>If you switched apps or locked your phone, just double-check your distance when you return.`;
+        setStatus("Tracking in progress", "status-live");
+        await requestWakeLock();
+      }
+    });
+
+    startAppBtn.addEventListener("click", () => {
+      loginScreen.classList.remove("active");
+      appScreen.classList.add("active");
+
+      initMap();
+      renderSessions();
+      renderCollectables();
+      updateCollectablesHeader();
+      updateOverallProgress();
+
+      locationStatus.textContent = "Location must be enabled before you can start your run.";
+      locationOverlay.classList.add("show");
+      startBtn.disabled = true;
+      endBtn.disabled = true;
+      manualAddBtn.disabled = false;
+      setStatus("Ready to track", "status-ready");
+    });
+
+    
+    
+    enableLocationBtn.addEventListener("click", enableLocationFromPopup);
+    startBtn.addEventListener("click", startRun);
+    endBtn.addEventListener("click", endRun);
+    manualAddBtn.addEventListener("click", addManualRun);
+    viewCompletionBtn.addEventListener("click", showFinishPopup);
+
+    manualToggle.addEventListener("click", () => {
+      toggleSection(manualContent, manualToggleText);
+    });
+
+    savedRunsToggle.addEventListener("click", () => {
+      toggleSection(savedRunsContent, savedRunsToggleText);
+    });
+
+    closeHowItWorksBtn.addEventListener("click", () => {
+      howItWorksOverlay.classList.remove("show");
+    });
+
+    sendProofHelpToggle.addEventListener("click", () => {
+      toggleSection(sendProofHelpContent, sendProofHelpToggleText);
+    });
+
+    downloadSelectedProofBtn.addEventListener("click", () => {
+      const selected = proofRunSelect.value;
+      if (selected === "") {
+        alert("Select a saved run first.");
+        return;
+      }
+      downloadProofForRun(Number(selected));
+    });
+
+    downloadAllProofsBtn.addEventListener("click", () => {
+      const sessions = getSessions();
+      if (!sessions.length) {
+        alert("No saved runs found.");
+        return;
+      }
+
+      sessions.forEach((_, index) => {
+        setTimeout(() => {
+          downloadProofForRun(index);
+        }, index * 450);
+      });
+    });
+
+    
+    logoutBtn.addEventListener("click", async () => {
+      if (isTracking){
+        alert("End the current run before logging out.");
+        return;
+      }
+
+      await releaseWakeLock();
+            appScreen.classList.remove("active");
+      loginScreen.classList.add("active");
+      locationOverlay.classList.remove("show");
+      howItWorksOverlay.classList.remove("show");
+    });
+
+    loginHowItWorksToggle.addEventListener("click", () => {
+      toggleSection(loginHowItWorksContent, loginHowItWorksToggleText);
+    });
+
+    resetBtn.addEventListener("click", openResetConfirm);
+    cancelResetBtn.addEventListener("click", closeResetConfirm);
+    confirmResetBtn.addEventListener("click", performResetProgress);
+
+    resetConfirmInput.addEventListener("input", () => {
+      resetConfirmInput.value = resetConfirmInput.value.toUpperCase();
+      confirmResetBtn.disabled = resetConfirmInput.value.trim() !== "WRW";
+    });
+    extrasToggle.addEventListener("click", () => {
+      toggleSection(extrasContent, extrasToggleText);
+      updateCollectablesHeader();
+    });
+
+    closeCollectableUnlockBtn.addEventListener("click", hideCollectableUnlock);
+    if (closeCardPopupBtn) closeCardPopupBtn.addEventListener("click", closeCollectableCard);
+
+    viewCollectableBtn.addEventListener("click", () => {
+      hideCollectableUnlock();
+      extrasContent.classList.add("open");
+      updateCollectablesHeader();
+      extrasToggle.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    proofBtn.addEventListener("click", sendProofEmail);
+    closeFinishBtn.addEventListener("click", hideFinishPopup);
+
+    window.downloadProofForRun = downloadProofForRun;
+
+    if (manualDateInput) {
+      manualDateInput.value = new Date().toISOString().split("T")[0];
+    }
+
+    renderSessions();
+    renderCollectables();
+    updateExtrasHeader();
+    updateCollectablesHeader();
+    updateOverallProgress();
+    setStatus("Ready to track", "status-ready");
+  </script>
+</body>
+</html>
